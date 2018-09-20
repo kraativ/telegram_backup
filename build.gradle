@@ -59,8 +59,10 @@ def getVersionName= { ->
 	return version
 }
 
-ant.propertyfile(file: "$project.rootDir/build/resources/main/build.properties") {
-	entry(key: "version", value: getVersionName())
+def filename = "$project.rootDir/build/resources/main/build.properties"
+file(filename).getParentFile().mkdirs()
+ant.propertyfile(file: filename) {
+    entry(key: "version", value: getVersionName())
 }
 
 jar {
