@@ -159,6 +159,7 @@ class DownloadManager(internal val client: TelegramClient, internal val progress
 
 		if (CommandLineOptions.cmd_channels
                 || CommandLineOptions.cmd_supergroups
+                || CommandLineOptions.cmd_ids_array.isNotEmpty()
                 || CommandLineOptions.cmd_show_all
                 || CommandLineOptions.cmd_channels_show
                 || CommandLineOptions.cmd_supergroups_show) {
@@ -203,7 +204,9 @@ class DownloadManager(internal val client: TelegramClient, internal val progress
 
 					// If this is a channel and we don't want to download channels OR
 					// it is a supergroups and we don't want to download supergroups, then
-					if (channels.contains(channel_id) && !CommandLineOptions.cmd_channels || supergroups.contains(channel_id) && !CommandLineOptions.cmd_supergroups) {
+					if (!CommandLineOptions.cmd_ids_array.contains(channel_id)
+                            && (channels.contains(channel_id) && !CommandLineOptions.cmd_channels
+                                    || supergroups.contains(channel_id) && !CommandLineOptions.cmd_supergroups)) {
 						// Skip this chat.
 						continue
 					}

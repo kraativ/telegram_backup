@@ -15,12 +15,16 @@
 * along with this program. If not, see <http://www.gnu.org/licenses/>. */
 package de.fabianonline.telegram_backup
 
+import java.util.*
+
 internal object CommandLineOptions {
 
     private const val S = "-s"
     private const val SHOW_ALL = "--show-all"
 	private const val SHOW_CHANNELS = "--show-channels"
 	private const val SHOW_SUPERGROUPS = "--show-supergroups"
+    private const val W = "-w"
+    private const val WITH_OBJECTS_IDS = "--with-objects-ids"
 
 	public var cmd_console = false
 	public var cmd_help = false
@@ -40,6 +44,7 @@ internal object CommandLineOptions {
 	var cmd_channels_show = false
 	var cmd_supergroups = false
 	var cmd_supergroups_show = false
+    var cmd_ids_array = ArrayList<Int>()
 	var cmd_no_pagination = false
 	var val_account: String? = null
 	var val_limit_messages: Int? = null
@@ -52,16 +57,25 @@ internal object CommandLineOptions {
 		var last_cmd: String? = null
 		loop@ for (arg in args) {
 			if (last_cmd != null) {
-				when (last_cmd) {
-					"--account" -> val_account = arg
-					"--limit-messages" -> val_limit_messages = Integer.parseInt(arg)
-					"--target" -> val_target = arg
-					"--export" -> val_export = arg
-					"--test" -> val_test = Integer.parseInt(arg)
-					"--pagination" -> val_pagination = Integer.parseInt(arg)
-				}
-				last_cmd = null
-				continue
+                if (last_cmd == WITH_OBJECTS_IDS) {
+                    if (arg.isNumber()) {
+                        cmd_ids_array.add(arg.toInt())
+                        continue
+                    } else {
+                        last_cmd = null
+                    }
+                } else {
+                    when (last_cmd) {
+                        "--account" -> val_account = arg
+                        "--limit-messages" -> val_limit_messages = Integer.parseInt(arg)
+                        "--target" -> val_target = arg
+                        "--export" -> val_export = arg
+                        "--test" -> val_test = Integer.parseInt(arg)
+                        "--pagination" -> val_pagination = Integer.parseInt(arg)
+                    }
+                    last_cmd = null
+                    continue
+                }
 			}
 			when (arg) {
 				"-a", "--account" -> {
@@ -103,6 +117,7 @@ internal object CommandLineOptions {
 				"--anonymize" -> cmd_anonymize = true
 				"--stats" -> cmd_stats = true
                 S, SHOW_ALL -> cmd_show_all = true
+                W, WITH_OBJECTS_IDS -> last_cmd = WITH_OBJECTS_IDS
 				"--with-channels" -> cmd_channels = true
                 SHOW_CHANNELS -> cmd_channels_show = true
 				"--with-supergroups" -> cmd_supergroups = true
@@ -110,7 +125,7 @@ internal object CommandLineOptions {
 				else -> throw RuntimeException("Unknown command " + arg)
 			}
 		}
-		if (last_cmd != null) {
+		if (last_cmd != null && (last_cmd != WITH_OBJECTS_IDS || cmd_ids_array.isEmpty())) {
 			CommandLineController.show_error("Command $last_cmd had no parameter set.")
 		}
 	}

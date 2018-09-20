@@ -182,5 +182,7 @@ fun String.anonymize(): String {
 	return if (!CommandLineOptions.cmd_anonymize) this else this.replace(Regex("[0-9]"), "1").replace(Regex("[A-Z]"), "A").replace(Regex("[a-z]"), "a") + " (ANONYMIZED)"
 }
 
+fun String.isNumber() = matches(Regex("\\d+"))
+
 fun Any.toJson(): String = Gson().toJson(this)
 fun Any.toPrettyJson(): String = GsonBuilder().setPrettyPrinting().create().toJson(this)
