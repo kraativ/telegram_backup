@@ -212,7 +212,13 @@ class DownloadManager(internal val client: TelegramClient, internal val progress
 					}
 					val max_known_id = db.getTopMessageIDForChannel(channel_id)
 					if (d.getTopMessage() > max_known_id) {
-						val ids = makeIdList(max_known_id + 1, d.getTopMessage())
+                        var start = max_known_id + 1
+                        if (limit != null) {
+                            System.out.println("Limit is set to $limit")
+                            start = Math.max(start, d.topMessage - limit)
+                            System.out.println("New top message id 'in database' is $max_database_id")
+                        }
+						val ids = makeIdList(start, d.getTopMessage())
 						val access_hash = channel_access_hashes.get(channel_id) ?: throw RuntimeException("AccessHash for Channel missing.")
 						var channel_name = channel_names.get(channel_id)
 						if (channel_name == null) {
