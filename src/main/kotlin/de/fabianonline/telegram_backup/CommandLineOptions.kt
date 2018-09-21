@@ -19,16 +19,80 @@ import java.util.*
 
 internal object CommandLineOptions {
 
+	private const val A = "-a"
+	private const val ACCOUNT = "--account"
+    private const val A_ = "-A"
+    private const val LIST_ACCOUNTS = "--list-accounts"
+    private const val ANONYMIZE = "--anonymize"
+	private const val CONSOLE = "--console"
+	private const val D = "-d"
+	private const val DAEMON = "--daemon"
+	private const val DEBUG = "--debug"
+	private const val E = "-e"
+	private const val EXPORT = "--export"
+	private const val H = "-h"
+	private const val HELP = "--help"
+	private const val L = "-l"
+	private const val LOGIN = "--login"
+    private const val LICENSE = "--license"
+    private const val LIMIT_MESSAGES = "--limit-messages"
+	private const val NO_MEDIA = "--no-media"
+	private const val NO_PAGINATION = "--no-pagination"
+	private const val PAGINATION = "--pagination"
     private const val S = "-s"
     private const val SHOW_ALL = "--show-all"
 	private const val SHOW_CHANNELS = "--show-channels"
 	private const val SHOW_SUPERGROUPS = "--show-supergroups"
+	private const val STATS = "--stats"
+	private const val T = "-t"
+	private const val TARGET = "--target"
+	private const val TEST = "--test"
+	private const val TRACE = "--trace"
+	private const val TRACE_TELEGRAM = "--trace-telegram"
+    private const val V_ = "-V"
+    private const val VERSION = "--version"
     private const val W = "-w"
     private const val WITH_OBJECTS_IDS = "--with-objects-ids"
+    private const val WITH_CHANNELS = "--with-channels"
+    private const val WITH_SUPERGROUPS = "--with-supergroups"
 
-	public var cmd_console = false
-	public var cmd_help = false
-	public var cmd_login = false
+    val help: String by lazy { """
+Valid options are:
+ $H, $HELP                Shows this help.
+ $V_, $VERSION             Show version.
+ $A, $ACCOUNT <x>         Use account <x>.
+ $L, $LOGIN               Login to an existing telegram account.
+     $DEBUG               Shows some debug information.
+     $TRACE               Shows lots of debug information. Overrides --debug.
+     $TRACE_TELEGRAM      Shows lots of debug messages from the library used to
+                               access Telegram.
+ $A_, $LIST_ACCOUNTS       List all existing accounts
+     $LIMIT_MESSAGES <x>  Downloads at most the most recent <x> messages.
+     $NO_MEDIA            Do not download media files.
+ $T, $TARGET <x>          Target directory for the files.
+ $E, $EXPORT <format>     Export the database. Valid formats are:
+                               html - Creates HTML files.
+     $PAGINATION <x>      Splits the HTML export into multiple HTML pages with
+                               <x> messages per page. Default is 5000.
+     $NO_PAGINATION       Disables pagination.
+     $LICENSE             Displays the license of this program.
+ $D, $DAEMON              Keep running after the backup and automatically save
+                               new messages.
+     $ANONYMIZE           (Try to) Remove all sensitive information from output.
+                               Useful for requesting support.
+     $STATS               Print some usage statistics.
+ $W, $WITH_OBJECTS_IDS [ids]
+                           Backup channels or supergroups with [ids] as well.
+ $S, $SHOW_ALL            Show channels and supergroups.
+     $SHOW_CHANNELS       Show channels.
+     $WITH_CHANNELS       Backup channels as well.
+     $SHOW_SUPERGROUPS    Show supergroups.
+     $WITH_SUPERGROUPS    Backup supergroups as well.
+""" }
+
+	var cmd_console = false
+	var cmd_help = false
+	var cmd_login = false
 	var cmd_debug = false
 	var cmd_trace = false
 	var cmd_trace_telegram = false
@@ -52,81 +116,65 @@ internal object CommandLineOptions {
 	var val_export: String? = null
 	var val_test: Int? = null
 	var val_pagination: Int = Config.DEFAULT_PAGINATION
-	@JvmStatic
+
 	fun parseOptions(args: Array<String>) {
-		var last_cmd: String? = null
-		loop@ for (arg in args) {
-			if (last_cmd != null) {
-                if (last_cmd == WITH_OBJECTS_IDS) {
+		var lastCommand: String? = null
+		for (arg in args) {
+			if (lastCommand != null) {
+                if (lastCommand == WITH_OBJECTS_IDS) {
                     if (arg.isNumber()) {
                         cmd_ids_array.add(arg.toInt())
                         continue
                     } else {
-                        last_cmd = null
+                        lastCommand = null
                     }
                 } else {
-                    when (last_cmd) {
-                        "--account" -> val_account = arg
-                        "--limit-messages" -> val_limit_messages = Integer.parseInt(arg)
-                        "--target" -> val_target = arg
-                        "--export" -> val_export = arg
-                        "--test" -> val_test = Integer.parseInt(arg)
-                        "--pagination" -> val_pagination = Integer.parseInt(arg)
+                    when (lastCommand) {
+                        A, ACCOUNT -> val_account = arg
+                        LIMIT_MESSAGES -> val_limit_messages = Integer.parseInt(arg)
+                        T, TARGET -> val_target = arg
+                        E, EXPORT -> val_export = arg
+                        TEST -> val_test = Integer.parseInt(arg)
+                        PAGINATION -> val_pagination = Integer.parseInt(arg)
                     }
-                    last_cmd = null
+                    lastCommand = null
                     continue
                 }
 			}
 			when (arg) {
-				"-a", "--account" -> {
-					last_cmd = "--account"
-					continue@loop
-				}
-				"-h", "--help" -> cmd_help = true
-				"-l", "--login" -> cmd_login = true
-				"--debug" -> cmd_debug = true
-				"--trace" -> cmd_trace = true
-				"--trace-telegram" -> cmd_trace_telegram = true
-				"-A", "--list-accounts" -> cmd_list_accounts = true
-				"--limit-messages" -> {
-					last_cmd = arg
-					continue@loop
-				}
-				"--console" -> cmd_console = true
-				"-t", "--target" -> {
-					last_cmd = "--target"
-					continue@loop
-				}
-				"-V", "--version" -> cmd_version = true
-				"-e", "--export" -> {
-					last_cmd = "--export"
-					continue@loop
-				}
-				"--pagination" -> {
-					last_cmd = "--pagination"
-					continue@loop
-				}
-				"--no-pagination" -> cmd_no_pagination = true
-				"--license" -> cmd_license = true
-				"-d", "--daemon" -> cmd_daemon = true
-				"--no-media" -> cmd_no_media = true
-				"--test" -> {
-					last_cmd = "--test"
-					continue@loop
-				}
-				"--anonymize" -> cmd_anonymize = true
-				"--stats" -> cmd_stats = true
+				A, ACCOUNT,
+                LIMIT_MESSAGES,
+                T, TARGET,
+                E, EXPORT,
+                PAGINATION,
+                TEST,
+                W, WITH_OBJECTS_IDS -> lastCommand = arg
+
+				H, HELP -> cmd_help = true
+				L, LOGIN -> cmd_login = true
+				DEBUG -> cmd_debug = true
+				TRACE -> cmd_trace = true
+				TRACE_TELEGRAM -> cmd_trace_telegram = true
+				A_, LIST_ACCOUNTS -> cmd_list_accounts = true
+                CONSOLE -> cmd_console = true
+				V_, VERSION -> cmd_version = true
+				NO_PAGINATION -> cmd_no_pagination = true
+				LICENSE -> cmd_license = true
+				D, DAEMON -> cmd_daemon = true
+				NO_MEDIA -> cmd_no_media = true
+				ANONYMIZE -> cmd_anonymize = true
+				STATS -> cmd_stats = true
                 S, SHOW_ALL -> cmd_show_all = true
-                W, WITH_OBJECTS_IDS -> last_cmd = WITH_OBJECTS_IDS
-				"--with-channels" -> cmd_channels = true
+				WITH_CHANNELS -> cmd_channels = true
                 SHOW_CHANNELS -> cmd_channels_show = true
-				"--with-supergroups" -> cmd_supergroups = true
+				WITH_SUPERGROUPS -> cmd_supergroups = true
                 SHOW_SUPERGROUPS -> cmd_supergroups_show = true
-				else -> throw RuntimeException("Unknown command " + arg)
+
+				else -> throw RuntimeException("Unknown command $arg")
 			}
 		}
-		if (last_cmd != null && (last_cmd != WITH_OBJECTS_IDS || cmd_ids_array.isEmpty())) {
-			CommandLineController.show_error("Command $last_cmd had no parameter set.")
+		if (lastCommand != null && (lastCommand != WITH_OBJECTS_IDS || cmd_ids_array.isEmpty())) {
+			CommandLineController.show_error("Command $lastCommand had no parameter set.")
 		}
 	}
 }

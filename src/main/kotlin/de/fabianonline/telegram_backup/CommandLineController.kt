@@ -15,19 +15,13 @@
 * along with this program. If not, see <http://www.gnu.org/licenses/>. */
 package de.fabianonline.telegram_backup
 
-import de.fabianonline.telegram_backup.TelegramUpdateHandler
 import de.fabianonline.telegram_backup.exporter.HTMLExporter
 import com.github.badoualy.telegram.api.Kotlogram
 import com.github.badoualy.telegram.api.TelegramApp
-import com.github.badoualy.telegram.api.TelegramClient
 import com.github.badoualy.telegram.tl.exception.RpcErrorException
-import java.io.File
 import java.io.IOException
 import java.util.Scanner
-import java.util.Vector
-import java.util.HashMap
 import org.slf4j.LoggerFactory
-import org.slf4j.Logger
 
 class CommandLineController {
 	private val storage: ApiStorage
@@ -267,31 +261,7 @@ class CommandLineController {
 	}
 
 	private fun show_help() {
-		println("Valid options are:")
-		println(" -h, --help            Shows this help.")
-		println(" -a, --account <x>     Use account <x>.")
-		println(" -l, --login           Login to an existing telegram account.")
-		println(" --debug               Shows some debug information.")
-		println(" --trace               Shows lots of debug information. Overrides --debug.")
-		println(" --trace-telegram      Shows lots of debug messages from the library used to access Telegram.")
-		println(" -A, --list-accounts   List all existing accounts ")
-		println(" --limit-messages <x>  Downloads at most the most recent <x> messages.")
-		println(" --no-media            Do not download media files.")
-		println(" -t, --target <x>      Target directory for the files.")
-		println(" -e, --export <format> Export the database. Valid formats are:")
-		println("                html - Creates HTML files.")
-		println(" --pagination <x>      Splits the HTML export into multiple HTML pages with <x> messages per page. Default is 5000.")
-		println(" --no-pagination       Disables pagination.")
-		println(" --license             Displays the license of this program.")
-		println(" -d, --daemon          Keep running after the backup and automatically save new messages.")
-		println(" --anonymize           (Try to) Remove all sensitive information from output. Useful for requesting support.")
-		println(" --stats               Print some usage statistics.")
-        println(" -s, --show-all        Show channels and supergroups.")
-        println(" -w, --with-objects-ids [ids]\n\tBackup channels or supergroups with [ids] as well.")
-        println(" --show-channels       Show channels.")
-		println(" --with-channels       Backup channels as well.")
-        println(" --show-supergroups    Show supergroups.")
-		println(" --with-supergroups    Backup supergroups as well.")
+		println(CommandLineOptions.help)
 	}
 
 	private fun list_accounts() {
