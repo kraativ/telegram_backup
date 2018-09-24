@@ -16,44 +16,29 @@
 
 package de.fabianonline.telegram_backup
 
-import de.fabianonline.telegram_backup.UserManager
-import de.fabianonline.telegram_backup.Database
-import de.fabianonline.telegram_backup.StickerConverter
-import de.fabianonline.telegram_backup.DownloadProgressInterface
 import de.fabianonline.telegram_backup.mediafilemanager.FileManagerFactory
-import de.fabianonline.telegram_backup.mediafilemanager.AbstractMediaFileManager
 
 import com.github.badoualy.telegram.api.TelegramClient
 import com.github.badoualy.telegram.api.Kotlogram
 import com.github.badoualy.telegram.tl.core.TLIntVector
-import com.github.badoualy.telegram.tl.core.TLObject
 import com.github.badoualy.telegram.tl.api.messages.TLAbsMessages
-import com.github.badoualy.telegram.tl.api.messages.TLAbsDialogs
 import com.github.badoualy.telegram.tl.api.*
 import com.github.badoualy.telegram.tl.api.upload.TLFile
 import com.github.badoualy.telegram.tl.exception.RpcErrorException
 import com.github.badoualy.telegram.tl.api.request.TLRequestUploadGetFile
 import org.slf4j.LoggerFactory
-import org.slf4j.Logger
-import com.google.gson.Gson
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.result.Result
-import com.github.kittinunf.result.getAs
 
 import java.io.IOException
 import java.io.File
 import java.io.FileOutputStream
-import java.util.ArrayList
 import java.util.LinkedList
 import java.util.HashMap
-import java.util.Random
-import java.net.URL
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.TimeUnit
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-
-import org.apache.commons.io.FileUtils
 
 enum class MessageSource(val descr: String) {
 	NORMAL(""),
@@ -61,17 +46,11 @@ enum class MessageSource(val descr: String) {
 	SUPERGROUP("supergroup")
 }
 
-class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressInterface) {
-	internal var user: UserManager? = null
-	internal var db: Database? = null
-	internal var prog: DownloadProgressInterface? = null
-	internal var has_seen_flood_wait_message = false
+class DownloadManager(internal val client: TelegramClient, internal val progress: DownloadProgressInterface) {
 
-	init {
-		this.user = UserManager.getInstance()
-		this.prog = p
-		this.db = Database.getInstance()
-	}
+	internal val user = UserManager.getInstance()
+	internal val db = Database.getInstance()
+	internal var has_seen_flood_wait_message = false
 
 	@Throws(RpcErrorException::class, IOException::class)
 	fun downloadMessages(limit: Int?) {
@@ -110,7 +89,7 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 		logger.info("Downloading the last {} dialogs", dialog_limit)
 		System.out.println("Downloading most recent dialogs... ")
 		var max_message_id = 0
-		val dialogs = client!!.messagesGetDialogs(
+		val dialogs = client.messagesGetDialogs(
 			0,
 			0,
 			TLInputPeerEmpty(),
@@ -124,7 +103,7 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 			}
 		}
 		System.out.println("Top message ID is " + max_message_id)
-		var max_database_id = db!!.getTopMessageID()
+		var max_database_id = db.getTopMessageID()
 		System.out.println("Top message ID in database is " + max_database_id)
 		if (limit != null) {
 			System.out.println("Limit is set to " + limit)
@@ -152,8 +131,8 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 
 		logger.info("Searching for missing messages in the db")
 		System.out.println("Checking message database for completeness...")
-		val db_count = db!!.getMessageCount()
-		val db_max = db!!.getTopMessageID()
+		val db_count = db.getMessageCount()
+		val db_max = db.getTopMessageID()
 		logger.debug("db_count: {}", db_count)
 		logger.debug("db_max: {}", db_max)
 
@@ -178,7 +157,11 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 		}
 		*/
 
-		if (CommandLineOptions.cmd_channels || CommandLineOptions.cmd_supergroups) {
+		if (CommandLineOptions.cmd_channels
+                || CommandLineOptions.cmd_supergroups
+                || CommandLineOptions.cmd_show_all
+                || CommandLineOptions.cmd_channels_show
+                || CommandLineOptions.cmd_supergroups_show) {
 			System.out.println("Processing channels and/or supergroups...")
 			System.out.println("Please note that only channels/supergroups in the last 100 active chats are processed.")
 
@@ -202,7 +185,17 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 				}
 			}
 
+            if (CommandLineOptions.cmd_show_all || CommandLineOptions.cmd_channels_show) {
+                channels.forEach {
+                    println(" * Channel id = ${idForPrint(it)} name = ${channel_names[it]}")
+                }
+            }
 
+            if (CommandLineOptions.cmd_show_all || CommandLineOptions.cmd_supergroups_show) {
+                supergroups.forEach {
+                    println(" * Supergroup id = ${idForPrint(it)} name = ${channel_names[it]}")
+                }
+            }
 
 			for (d in dialogs.getDialogs()) {
 				if (d.getPeer() is TLPeerChannel) {
@@ -214,7 +207,7 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 						// Skip this chat.
 						continue
 					}
-					val max_known_id = db!!.getTopMessageIDForChannel(channel_id)
+					val max_known_id = db.getTopMessageIDForChannel(channel_id)
 					if (d.getTopMessage() > max_known_id) {
 						val ids = makeIdList(max_known_id + 1, d.getTopMessage())
 						val access_hash = channel_access_hashes.get(channel_id) ?: throw RuntimeException("AccessHash for Channel missing.")
@@ -246,7 +239,7 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 		} else {
 			"${source_type.descr} $source_name"
 		}
-		prog!!.onMessageDownloadStart(ids.size, source_string)
+		progress.onMessageDownloadStart(ids.size, source_string)
 
 		logger.debug("Entering download loop")
 		while (ids.size > 0) {
@@ -271,9 +264,9 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 				tries++
 				try {
 					if (channel == null) {
-						response = client!!.messagesGetMessages(vector)
+						response = client.messagesGetMessages(vector)
 					} else {
-						response = client!!.channelsGetMessages(channel, vector)
+						response = client.channelsGetMessages(channel, vector)
 					}
 					break
 				} catch (e: RpcErrorException) {
@@ -291,10 +284,10 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 				CommandLineController.show_error("Requested ${vector.size} messages, but got ${response.getMessages().size}. That is unexpected. Quitting.")
 			}
 
-			prog!!.onMessageDownloaded(response.getMessages().size)
-			db!!.saveMessages(response.getMessages(), Kotlogram.API_LAYER, source_type=source_type)
-			db!!.saveChats(response.getChats())
-			db!!.saveUsers(response.getUsers())
+			progress.onMessageDownloaded(response.getMessages().size)
+			db.saveMessages(response.getMessages(), Kotlogram.API_LAYER, source_type=source_type)
+			db.saveChats(response.getChats())
+			db.saveUsers(response.getUsers())
 			logger.trace("Sleeping")
 			try {
 				TimeUnit.MILLISECONDS.sleep(Config.DELAY_AFTER_GET_MESSAGES)
@@ -304,12 +297,12 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 		}
 		logger.debug("Finished.")
 
-		prog!!.onMessageDownloadFinished()
+		progress.onMessageDownloadFinished()
 	}
 
 	@Throws(RpcErrorException::class, IOException::class)
 	fun downloadMedia() {
-		download_client = client!!.getDownloaderClient()
+		download_client = client.getDownloaderClient()
 		var completed: Boolean
 		do {
 			completed = true
@@ -339,19 +332,19 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 	private fun _downloadMedia() {
 		logger.info("This is _downloadMedia")
 		logger.info("Checking if there are messages in the DB with a too old API layer")
-		val ids = db!!.getIdsFromQuery("SELECT id FROM messages WHERE has_media=1 AND api_layer<" + Kotlogram.API_LAYER)
+		val ids = db.getIdsFromQuery("SELECT id FROM messages WHERE has_media=1 AND api_layer<" + Kotlogram.API_LAYER)
 		if (ids.size > 0) {
 			System.out.println("You have ${ids.size} messages in your db that need an update. Doing that now.")
 			logger.debug("Found {} messages", ids.size)
 			downloadMessages(ids, null, source_type=MessageSource.NORMAL)
 		}
 
-		val messages = this.db!!.getMessagesWithMedia()
+		val messages = this.db.getMessagesWithMedia()
 		logger.debug("Database returned {} messages with media", messages.size)
-		prog!!.onMediaDownloadStart(messages.size)
+		progress.onMediaDownloadStart(messages.size)
 		for (msg in messages) {
 			if (msg == null) continue
-			val m = FileManagerFactory.getFileManager(msg, user!!, client!!)
+			val m = FileManagerFactory.getFileManager(msg, user, client)
 			logger.trace("message {}, {}, {}, {}, {}",
 				msg.getId(),
 				msg.getMedia().javaClass.getSimpleName().replace("TLMessageMedia", "…"),
@@ -359,25 +352,25 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 				if (m.isEmpty) "empty" else "non-empty",
 				if (m.downloaded) "downloaded" else "not downloaded")
 			if (m.isEmpty) {
-				prog!!.onMediaDownloadedEmpty()
+				progress.onMediaDownloadedEmpty()
 			} else if (m.downloaded) {
-				prog!!.onMediaAlreadyPresent(m)
+				progress.onMediaAlreadyPresent(m)
 			} else {
 				try {
 					val result = m.download()
 					if (result) {
-						prog!!.onMediaDownloaded(m)
+						progress.onMediaDownloaded(m)
 					} else {
-						prog!!.onMediaSkipped()
+						progress.onMediaSkipped()
 					}
 				} catch (e: TimeoutException) {
 					// do nothing - skip this file
-					prog!!.onMediaSkipped()
+					progress.onMediaSkipped()
 				}
 
 			}
 		}
-		prog!!.onMediaDownloadFinished()
+		progress.onMediaDownloadFinished()
 	}
 
 	private fun makeIdList(start: Int, end: Int): MutableList<Int> {
@@ -517,5 +510,8 @@ class DownloadManager(internal var client: TelegramClient?, p: DownloadProgressI
 			}
 			return false
 		}
+
+        private fun idForPrint(id: Int) = id.toString().padEnd(10)
+
 	}
 }

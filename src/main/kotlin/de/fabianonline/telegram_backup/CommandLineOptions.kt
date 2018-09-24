@@ -16,6 +16,12 @@
 package de.fabianonline.telegram_backup
 
 internal object CommandLineOptions {
+
+    private const val S = "-s"
+    private const val SHOW_ALL = "--show-all"
+	private const val SHOW_CHANNELS = "--show-channels"
+	private const val SHOW_SUPERGROUPS = "--show-supergroups"
+
 	public var cmd_console = false
 	public var cmd_help = false
 	public var cmd_login = false
@@ -29,8 +35,11 @@ internal object CommandLineOptions {
 	var cmd_no_media = false
 	var cmd_anonymize = false
 	var cmd_stats = false
+	var cmd_show_all = false
 	var cmd_channels = false
+	var cmd_channels_show = false
 	var cmd_supergroups = false
+	var cmd_supergroups_show = false
 	var cmd_no_pagination = false
 	var val_account: String? = null
 	var val_limit_messages: Int? = null
@@ -93,8 +102,11 @@ internal object CommandLineOptions {
 				}
 				"--anonymize" -> cmd_anonymize = true
 				"--stats" -> cmd_stats = true
+                S, SHOW_ALL -> cmd_show_all = true
 				"--with-channels" -> cmd_channels = true
+                SHOW_CHANNELS -> cmd_channels_show = true
 				"--with-supergroups" -> cmd_supergroups = true
+                SHOW_SUPERGROUPS -> cmd_supergroups_show = true
 				else -> throw RuntimeException("Unknown command " + arg)
 			}
 		}

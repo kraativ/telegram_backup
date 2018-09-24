@@ -286,7 +286,10 @@ class CommandLineController {
 		println(" -d, --daemon          Keep running after the backup and automatically save new messages.")
 		println(" --anonymize           (Try to) Remove all sensitive information from output. Useful for requesting support.")
 		println(" --stats               Print some usage statistics.")
+        println(" -s, --show-all        Show channels and supergroups.")
+        println(" --show-channels       Show channels.")
 		println(" --with-channels       Backup channels as well.")
+        println(" --show-supergroups    Show supergroups.")
 		println(" --with-supergroups    Backup supergroups as well.")
 	}
 
